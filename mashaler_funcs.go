@@ -82,3 +82,11 @@ func setValue(v reflect.Value, d string) error {
 		return fmt.Errorf("cannot handle value of kind %v", v.Kind())
 	}
 }
+
+func forEachStructField(s reflect.Type, f func(f reflect.StructField, i int)) {
+	if s.Kind() == reflect.Struct {
+		for i := 0; i < s.NumField(); i++ {
+			f(s.Field(i), i)
+		}
+	}
+}
