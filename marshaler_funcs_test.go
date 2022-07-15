@@ -2,13 +2,14 @@ package marshaler
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
 type TestCase struct {
 	expectation bool
 	dataType    string
-	data        interface{}
+	data        any
 }
 
 type PredicateFunc func(v any) bool
@@ -129,4 +130,87 @@ func Test_isPointerToSliceOfStructs(t *testing.T) {
 			{dataType: "*[]TestCase{}", data: &[]TestCase{}, expectation: true},
 		},
 	})
+}
+
+//
+
+func Test_getValue(t *testing.T) {
+	type GetValueTestCase struct {
+		expectation string
+		name        string
+		data        any
+	}
+
+	testCases := []GetValueTestCase{
+		{name: "integer test", data: 120, expectation: "120"},
+		{name: "boolean test", data: false, expectation: "false"},
+		{name: "string test", data: "hello", expectation: "hello"},
+		{name: "unsupported type test", data: []string{}, expectation: ""},
+	}
+
+	for _, testCase := range testCases {
+		var (
+			testName            = testCase.name
+			expectation         = testCase.expectation
+			testfuncData        = reflect.ValueOf(testCase.data)
+			testResult, testErr = getValue(testfuncData)
+		)
+
+		t.Run(testName, func(t *testing.T) {
+			if testResult != expectation {
+				t.Error(testErr)
+			}
+		})
+	}
+}
+
+func Test_setValue(t *testing.T) {
+	var (
+		sData     = ""
+		sValue    = "test"
+		sPtrValue = reflect.ValueOf(&sData)
+		sTestErr  = setValue(sPtrValue.Elem(), sValue)
+	)
+
+	if sData != sValue || sTestErr != nil {
+		t.Error(sTestErr)
+	}
+
+	//
+
+	var (
+		b         = false
+		bValue    = "true"
+		bPtrValue = reflect.ValueOf(&b)
+		bTestErr  = setValue(bPtrValue.Elem(), bValue)
+	)
+
+	if b != true || bTestErr != nil {
+		t.Error(bTestErr)
+	}
+
+	//
+
+	var (
+		i         = 100
+		iValue    = 120
+		iPtrValue = reflect.ValueOf(&i)
+		iTestErr  = setValue(iPtrValue.Elem(), fmt.Sprint(iValue))
+	)
+
+	if i != iValue || iTestErr != nil {
+		t.Error(iTestErr)
+	}
+
+	//
+
+	var (
+		st         = struct{}{}
+		stPtrValue = reflect.ValueOf(&st)
+		stTestErr  = setValue(stPtrValue.Elem(), "not gonna work")
+	)
+
+	if stTestErr == nil {
+		t.Error("expected error, got nil")
+	}
 }
