@@ -90,3 +90,53 @@ func forEachStructField(s reflect.Type, f func(f reflect.StructField, i int)) {
 		}
 	}
 }
+
+func marshalHeader(s reflect.Type) []string {
+	row := make([]string, 0, s.NumField())
+
+	forEachStructField(s, func(sf reflect.StructField, i int) {
+		tagName, hasStructTag := sf.Tag.Lookup(csvStructTag)
+
+		if hasStructTag {
+			row = append(row, tagName)
+		}
+	})
+
+	return row
+}
+
+func marshalStruct(sv reflect.Value) (csvRow []string, err error) {
+	row := make([]string, 0, sv.NumField())
+
+	forEachStructField(sv.Type(), func(sf reflect.StructField, i int) {
+		sfv := sv.Field(i)
+		_, ok := sf.Tag.Lookup(csvStructTag)
+
+		if ok {
+			if v, sfvErr := getValue(sfv); sfvErr != nil {
+				err = sfvErr
+
+			} else {
+				row = append(row, v)
+			}
+		}
+	})
+
+	return row, err
+}
+
+func unmarshalStruct(row []string, columnNamePositions map[string]int, sv reflect.Value) (err error) {
+	forEachStructField(sv.Type(), func(sf reflect.StructField, i int) {
+		field := sv.Field(i)
+		tagName := sf.Tag.Get(csvStructTag)
+		fieldPosition, fieldExists := columnNamePositions[tagName]
+
+		if fieldExists {
+			if parseErr := setValue(field, row[fieldPosition]); parseErr != nil {
+				err = parseErr
+			}
+		}
+	})
+
+	return err
+}
