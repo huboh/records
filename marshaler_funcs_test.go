@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 type testcase struct {
@@ -172,8 +174,12 @@ func Test_setValue(t *testing.T) {
 		sTestErr  = setValue(sPtrValue.Elem(), sValue)
 	)
 
-	if sData != sValue || sTestErr != nil {
+	if sTestErr != nil {
 		t.Error(sTestErr)
+	}
+
+	if sData != sValue {
+		t.Error("values does not equal")
 	}
 
 	//
@@ -185,8 +191,12 @@ func Test_setValue(t *testing.T) {
 		bTestErr  = setValue(bPtrValue.Elem(), bValue)
 	)
 
-	if b != true || bTestErr != nil {
+	if bTestErr != nil {
 		t.Error(bTestErr)
+	}
+
+	if b != true {
+		t.Error("values does not equal")
 	}
 
 	//
@@ -198,8 +208,12 @@ func Test_setValue(t *testing.T) {
 		iTestErr  = setValue(iPtrValue.Elem(), fmt.Sprint(iValue))
 	)
 
-	if i != iValue || iTestErr != nil {
+	if iTestErr != nil {
 		t.Error(iTestErr)
+	}
+
+	if i != iValue {
+		t.Error("values does not equal")
 	}
 
 	//
@@ -212,5 +226,58 @@ func Test_setValue(t *testing.T) {
 
 	if stTestErr == nil {
 		t.Error("expected error, got nil")
+	}
+}
+
+type person struct {
+	Age        int
+	Name       string `csv:"name"`
+	Hobby      string `csv:"hobby"`
+	Address    string `csv:"address"`
+	IsNigerian bool   `csv:"isNigerian"`
+}
+
+var (
+	age, name, hobby, address, isNigerian = 10, "john", "football", "no. 10 fuck off", true
+)
+
+func Test_marshalHeader(t *testing.T) {
+	testData := reflect.TypeOf(person{})
+	testResult := marshalHeader(testData)
+	testResultExpectation := []string{"name", "hobby", "address", "isNigerian"}
+
+	if !(cmp.Equal(testResult, testResultExpectation)) {
+		t.Error("incorrect result")
+	}
+}
+
+func Test_marshalStruct(t *testing.T) {
+	testData := person{age, name, hobby, address, isNigerian}
+	testExpectation := []string{name, hobby, address, fmt.Sprint(isNigerian)}
+	testResult, marshalErr := marshalStruct(reflect.ValueOf(testData))
+
+	if marshalErr != nil {
+		t.Error(marshalErr)
+	}
+
+	if diff := cmp.Diff(testResult, testExpectation); diff != "" {
+		t.Error(diff)
+	}
+}
+
+func Test_unmarshalStruct(t *testing.T) {
+	testResult := person{}
+	testExpectation := person{0, name, hobby, address, isNigerian}
+
+	csvRow := []string{fmt.Sprint(age), name, hobby, address, fmt.Sprint(isNigerian)}
+	headerKeyMap := map[string]int{"age": 0, "name": 1, "hobby": 2, "address": 3, "isNigerian": 4}
+	structValue := reflect.ValueOf(&testResult).Elem()
+
+	if umarshalErr := unmarshalStruct(csvRow, headerKeyMap, structValue); umarshalErr != nil {
+		t.Error(umarshalErr)
+	}
+
+	if diff := cmp.Diff(testResult, testExpectation); diff != "" {
+		t.Error(diff)
 	}
 }
