@@ -6,18 +6,18 @@ import (
 	"testing"
 )
 
-type TestCase struct {
+type testcase struct {
 	expectation bool
 	dataType    string
 	data        any
 }
 
-type PredicateFunc func(v any) bool
+type predicateFunc func(v any) bool
 
 type runPredicateTestProp struct {
 	predicateTestType string
-	predicateFunc     PredicateFunc
-	testCases         []TestCase
+	predicateFunc     predicateFunc
+	testCases         []testcase
 	t                 *testing.T
 }
 
@@ -44,7 +44,7 @@ func Test_isSlice(t *testing.T) {
 		predicateFunc:     isSlice,
 		predicateTestType: "slice",
 
-		testCases: []TestCase{
+		testCases: []testcase{
 			{dataType: "int", data: int(1), expectation: false},
 			{dataType: "string", data: string("1"), expectation: false},
 			{dataType: "struct{}", data: struct{}{}, expectation: false},
@@ -64,7 +64,7 @@ func Test_isStruct(t *testing.T) {
 		predicateFunc:     isStruct,
 		predicateTestType: "struct",
 
-		testCases: []TestCase{
+		testCases: []testcase{
 			{dataType: "int", data: int(1), expectation: false},
 			{dataType: "string", data: string("1"), expectation: false},
 			{dataType: "*[]string", data: &[]string{}, expectation: false},
@@ -72,7 +72,7 @@ func Test_isStruct(t *testing.T) {
 			{dataType: "[]struct{}", data: []struct{}{}, expectation: false},
 			{dataType: "map[string]int", data: map[string]int{}, expectation: false},
 			{dataType: "struct{}", data: struct{}{}, expectation: true},
-			{dataType: "TestCase{}", data: TestCase{}, expectation: true},
+			{dataType: "TestCase{}", data: testcase{}, expectation: true},
 		},
 	})
 }
@@ -83,10 +83,10 @@ func Test_isPointer(t *testing.T) {
 		predicateFunc:     isPointer,
 		predicateTestType: "pointer",
 
-		testCases: []TestCase{
+		testCases: []testcase{
 			{dataType: "int", data: int(1), expectation: false},
 			{dataType: "string", data: string("1"), expectation: false},
-			{dataType: "TestCase{}", data: TestCase{}, expectation: false},
+			{dataType: "TestCase{}", data: testcase{}, expectation: false},
 			{dataType: "struct{}", data: struct{}{}, expectation: false},
 			{dataType: "[]struct{}", data: []struct{}{}, expectation: false},
 			{dataType: "map[string]int", data: map[string]int{}, expectation: false},
@@ -102,7 +102,7 @@ func Test_isSliceOfStruct(t *testing.T) {
 		predicateFunc:     isSliceOfStruct,
 		predicateTestType: "slice of struct",
 
-		testCases: []TestCase{
+		testCases: []testcase{
 			{dataType: "int", data: (int)(1), expectation: false},
 			{dataType: "struct{}", data: struct{}{}, expectation: false},
 			{dataType: "[]struct{}", data: []struct{}{}, expectation: true},
@@ -119,15 +119,15 @@ func Test_isPointerToSliceOfStructs(t *testing.T) {
 		predicateFunc:     isPointerToSliceOfStructs,
 		predicateTestType: "pointer to slice of struct",
 
-		testCases: []TestCase{
+		testCases: []testcase{
 			{dataType: "int", data: (int)(1), expectation: false},
 			{dataType: "struct{}", data: struct{}{}, expectation: false},
 			{dataType: "[2]string", data: [2]string{}, expectation: false},
 			{dataType: "map[string]int", data: map[string]int{}, expectation: false},
 			{dataType: "*[]string", data: &[]string{}, expectation: false},
-			{dataType: "*[3]TestCase{}", data: &[2]TestCase{}, expectation: false},
+			{dataType: "*[3]TestCase{}", data: &[2]testcase{}, expectation: false},
 			{dataType: "*[]struct{}", data: &[]struct{}{}, expectation: true},
-			{dataType: "*[]TestCase{}", data: &[]TestCase{}, expectation: true},
+			{dataType: "*[]TestCase{}", data: &[]testcase{}, expectation: true},
 		},
 	})
 }
@@ -148,11 +148,11 @@ func Test_getValue(t *testing.T) {
 		{name: "unsupported type test", data: []string{}, expectation: ""},
 	}
 
-	for _, testCase := range testCases {
+	for _, tc := range testCases {
 		var (
-			testName            = testCase.name
-			expectation         = testCase.expectation
-			testfuncData        = reflect.ValueOf(testCase.data)
+			testName            = tc.name
+			expectation         = tc.expectation
+			testfuncData        = reflect.ValueOf(tc.data)
 			testResult, testErr = getValue(testfuncData)
 		)
 
