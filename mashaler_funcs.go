@@ -7,8 +7,7 @@ import (
 )
 
 const (
-	csvStructTag        = string("csv")
-	columnNamesPosition = int(0)
+	csvKeyName = string("csv")
 )
 
 func isSlice(v any) bool {
@@ -95,10 +94,8 @@ func marshalHeader(s reflect.Type) []string {
 	row := make([]string, 0, s.NumField())
 
 	forEachStructField(s, func(sf reflect.StructField, i int) {
-		tagName, hasStructTag := sf.Tag.Lookup(csvStructTag)
-
-		if hasStructTag {
-			row = append(row, tagName)
+		if csvKey, csvKeyExists := sf.Tag.Lookup(csvKeyName); csvKeyExists {
+			row = append(row, csvKey)
 		}
 	})
 
@@ -110,12 +107,11 @@ func marshalStruct(sv reflect.Value) (csvRow []string, err error) {
 
 	forEachStructField(sv.Type(), func(sf reflect.StructField, i int) {
 		sfv := sv.Field(i)
-		_, ok := sf.Tag.Lookup(csvStructTag)
+		_, csvKeyExists := sf.Tag.Lookup(csvKeyName)
 
-		if ok {
-			if v, sfvErr := getValue(sfv); sfvErr != nil {
-				err = sfvErr
-
+		if csvKeyExists {
+			if v, e := getValue(sfv); e != nil {
+				err = e
 			} else {
 				row = append(row, v)
 			}
@@ -125,15 +121,14 @@ func marshalStruct(sv reflect.Value) (csvRow []string, err error) {
 	return row, err
 }
 
-func unmarshalStruct(row []string, columnNamePositions map[string]int, sv reflect.Value) (err error) {
+func unmarshalStruct(row []string, csvKeyMap map[string]int, sv reflect.Value) (err error) {
 	forEachStructField(sv.Type(), func(sf reflect.StructField, i int) {
-		field := sv.Field(i)
-		tagName := sf.Tag.Get(csvStructTag)
-		fieldPosition, fieldExists := columnNamePositions[tagName]
+		f := sv.Field(i)
+		csvKey := sf.Tag.Get(csvKeyName)
 
-		if fieldExists {
-			if parseErr := setValue(field, row[fieldPosition]); parseErr != nil {
-				err = parseErr
+		if fieldPosition, fieldExists := csvKeyMap[csvKey]; fieldExists {
+			if e := setValue(f, row[fieldPosition]); e != nil {
+				err = e
 			}
 		}
 	})
