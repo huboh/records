@@ -82,6 +82,16 @@ func setValue(v reflect.Value, d string) error {
 	}
 }
 
+// forEachStruct iterates through a `reflect.Value` representation of slice of structs & calls the given function for each struct
+func forEachStruct(slice reflect.Value, f func(s reflect.Value, i int)) {
+	if (slice.Kind() == reflect.Slice) && (slice.Type().Elem().Kind() == reflect.Struct) {
+		for i := 0; i < slice.Len(); i++ {
+			f(slice.Index(i), i)
+		}
+	}
+}
+
+// forEachStructField iterates through a `reflect.Type` representation of a  structs & calls the given function for each struct field
 func forEachStructField(s reflect.Type, f func(f reflect.StructField, i int)) {
 	if s.Kind() == reflect.Struct {
 		for i := 0; i < s.NumField(); i++ {
