@@ -1,4 +1,4 @@
-module github.com/huboh/marshaler
+module github.com/huboh/records
 
 go 1.18
 
