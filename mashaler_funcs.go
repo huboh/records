@@ -100,7 +100,7 @@ func forEachStructField(s reflect.Type, f func(f reflect.StructField, i int)) {
 	}
 }
 
-func marshalHeader(s reflect.Type) []string {
+func getRecordKeys(s reflect.Type) (recordKeys []string) {
 	row := make([]string, 0, s.NumField())
 
 	forEachStructField(s, func(sf reflect.StructField, i int) {
@@ -112,8 +112,8 @@ func marshalHeader(s reflect.Type) []string {
 	return row
 }
 
-func marshalStruct(sv reflect.Value) (csvRow []string, err error) {
-	row := make([]string, 0, sv.NumField())
+func marshalRecord(sv reflect.Value) (csvRecord []string, err error) {
+	record := make([]string, 0, sv.NumField())
 
 	forEachStructField(sv.Type(), func(sf reflect.StructField, i int) {
 		sfv := sv.Field(i)
@@ -123,21 +123,21 @@ func marshalStruct(sv reflect.Value) (csvRow []string, err error) {
 			if v, e := getValue(sfv); e != nil {
 				err = e
 			} else {
-				row = append(row, v)
+				record = append(record, v)
 			}
 		}
 	})
 
-	return row, err
+	return record, err
 }
 
-func unmarshalStruct(row []string, csvKeyMap map[string]int, sv reflect.Value) (err error) {
+func unmarshalRecord(record []string, csvKeyMap map[string]int, sv reflect.Value) (err error) {
 	forEachStructField(sv.Type(), func(sf reflect.StructField, i int) {
 		f := sv.Field(i)
 		csvKey := sf.Tag.Get(csvKeyName)
 
 		if fieldPosition, fieldExists := csvKeyMap[csvKey]; fieldExists {
-			if e := setValue(f, row[fieldPosition]); e != nil {
+			if e := setValue(f, record[fieldPosition]); e != nil {
 				err = e
 			}
 		}

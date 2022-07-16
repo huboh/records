@@ -241,20 +241,20 @@ var (
 	age, name, hobby, address, isNigerian = 10, "john", "football", "no. 10 fuck off", true
 )
 
-func Test_marshalHeader(t *testing.T) {
+func Test_getRecordKeys(t *testing.T) {
 	testData := reflect.TypeOf(person{})
-	testResult := marshalHeader(testData)
-	testResultExpectation := []string{"name", "hobby", "address", "isNigerian"}
+	testResult := getRecordKeys(testData)
+	testExpectation := []string{"name", "hobby", "address", "isNigerian"}
 
-	if !(cmp.Equal(testResult, testResultExpectation)) {
-		t.Error("incorrect result")
+	if diff := cmp.Diff(testResult, testExpectation); diff != "" {
+		t.Error(diff)
 	}
 }
 
-func Test_marshalStruct(t *testing.T) {
+func Test_marshalRecord(t *testing.T) {
 	testData := person{age, name, hobby, address, isNigerian}
 	testExpectation := []string{name, hobby, address, fmt.Sprint(isNigerian)}
-	testResult, marshalErr := marshalStruct(reflect.ValueOf(testData))
+	testResult, marshalErr := marshalRecord(reflect.ValueOf(testData))
 
 	if marshalErr != nil {
 		t.Error(marshalErr)
@@ -265,15 +265,15 @@ func Test_marshalStruct(t *testing.T) {
 	}
 }
 
-func Test_unmarshalStruct(t *testing.T) {
+func Test_unmarshalRecord(t *testing.T) {
 	testResult := person{}
 	testExpectation := person{0, name, hobby, address, isNigerian}
 
-	csvRow := []string{fmt.Sprint(age), name, hobby, address, fmt.Sprint(isNigerian)}
+	csvRecord := []string{fmt.Sprint(age), name, hobby, address, fmt.Sprint(isNigerian)}
 	headerKeyMap := map[string]int{"age": 0, "name": 1, "hobby": 2, "address": 3, "isNigerian": 4}
 	structValue := reflect.ValueOf(&testResult).Elem()
 
-	if umarshalErr := unmarshalStruct(csvRow, headerKeyMap, structValue); umarshalErr != nil {
+	if umarshalErr := unmarshalRecord(csvRecord, headerKeyMap, structValue); umarshalErr != nil {
 		t.Error(umarshalErr)
 	}
 
