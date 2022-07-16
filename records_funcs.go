@@ -44,41 +44,41 @@ func getValue(f reflect.Value) (string, error) {
 		return f.String(), nil
 
 	default:
-		return "", fmt.Errorf("cannot handle value of kind %v", f.Kind())
+		return "", ErrUnSupportedKind
 	}
 }
 
-func setValue(v reflect.Value, d string) error {
-	switch v.Kind() {
+func setValue(d reflect.Value, v string) error {
+	switch d.Kind() {
 	case reflect.Int:
-		i, err := strconv.ParseInt(d, 10, 64)
+		i, err := strconv.ParseInt(v, 10, 64)
 
 		if err != nil {
 			return err
 		}
 
-		v.SetInt(i)
+		d.SetInt(i)
 
 		return nil
 
 	case reflect.Bool:
-		b, err := strconv.ParseBool(d)
+		b, err := strconv.ParseBool(v)
 
 		if err != nil {
 			return err
 		}
 
-		v.SetBool(b)
+		d.SetBool(b)
 
 		return nil
 
 	case reflect.String:
-		v.SetString(d)
+		d.SetString(v)
 
 		return nil
 
 	default:
-		return fmt.Errorf("cannot handle value of kind %v", v.Kind())
+		return ErrUnSupportedKind
 	}
 }
 
@@ -117,14 +117,19 @@ func marshalRecord(sv reflect.Value) (csvRecord []string, err error) {
 
 	forEachStructField(sv.Type(), func(sf reflect.StructField, i int) {
 		sfv := sv.Field(i)
-		_, csvKeyExists := sf.Tag.Lookup(csvKeyName)
+		csvKey, csvKeyExists := sf.Tag.Lookup(csvKeyName)
 
 		if csvKeyExists {
-			if v, e := getValue(sfv); e != nil {
-				err = e
-			} else {
-				record = append(record, v)
+			v, e := getValue(sfv)
+
+			if e != nil {
+				err = KindErr{
+					Message:    fmt.Sprintf("field '%v' is of unsupported kind: %v", csvKey, sfv.Kind()),
+					WrappedErr: e,
+				}
 			}
+
+			record = append(record, v)
 		}
 	})
 
@@ -136,9 +141,12 @@ func unmarshalRecord(record []string, csvKeyMap map[string]int, sv reflect.Value
 		f := sv.Field(i)
 		csvKey := sf.Tag.Get(csvKeyName)
 
-		if fieldPosition, fieldExists := csvKeyMap[csvKey]; fieldExists {
+		if fieldPosition, fieldExists := csvKeyMap[csvKey]; fieldExists && f.CanSet() {
 			if e := setValue(f, record[fieldPosition]); e != nil {
-				err = e
+				err = KindErr{
+					Message:    fmt.Sprintf("field '%v' is of unsupported kind: %v", csvKey, f.Kind()),
+					WrappedErr: e,
+				}
 			}
 		}
 	})
