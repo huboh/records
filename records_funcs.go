@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+
+	"github.com/huboh/records/internal/structType"
 )
 
 const (
-	csvKeyName = string("csv")
+	csvTagName = string("csv")
 )
 
 func isSlice(v any) bool {
@@ -91,62 +93,52 @@ func forEachStruct(slice reflect.Value, f func(s reflect.Value, i int)) {
 	}
 }
 
-// forEachStructField iterates through a `reflect.Type` representation of a  structs & calls the given function for each struct field
-func forEachStructField(s reflect.Type, f func(f reflect.StructField, i int)) {
-	if s.Kind() == reflect.Struct {
-		for i := 0; i < s.NumField(); i++ {
-			f(s.Field(i), i)
+// getEntryTags gets the csv struct tag from each entry field
+func getEntryTags(s reflect.Type) (entryTags []string) {
+	return structType.Reduce(s, entryTags, func(tags []string, structField reflect.StructField, i int) []string {
+		if tag, tagExists := structField.Tag.Lookup(csvTagName); tagExists {
+			tags = append(tags, tag)
 		}
-	}
-}
 
-func getRecordKeys(s reflect.Type) (recordKeys []string) {
-	row := make([]string, 0, s.NumField())
-
-	forEachStructField(s, func(sf reflect.StructField, i int) {
-		if csvKey, csvKeyExists := sf.Tag.Lookup(csvKeyName); csvKeyExists {
-			row = append(row, csvKey)
-		}
+		return tags
 	})
-
-	return row
 }
 
-func marshalRecord(sv reflect.Value) (csvRecord []string, err error) {
-	record := make([]string, 0, sv.NumField())
+// marshalEntry transform a CSV entry to a CSV record, it ignores struct fields without a csv struct tag
+func marshalEntry(sv reflect.Value) (record []string, err error) {
+	entryReducer := func(csvRecord []string, structField reflect.StructField, index int) []string {
+		field := sv.Field(index)
+		fieldName := structField.Name
+		_, tagExists := structField.Tag.Lookup(csvTagName)
 
-	forEachStructField(sv.Type(), func(sf reflect.StructField, i int) {
-		sfv := sv.Field(i)
-		csvKey, csvKeyExists := sf.Tag.Lookup(csvKeyName)
+		if tagExists {
+			record, recordErr := getValue(field)
+			csvRecord = append(csvRecord, record)
 
-		if csvKeyExists {
-			v, e := getValue(sfv)
-
-			if e != nil {
+			if recordErr != nil {
 				err = KindErr{
-					Message:    fmt.Sprintf("field '%v' is of unsupported kind: %v", csvKey, sfv.Kind()),
-					WrappedErr: e,
+					WrappedErr: recordErr,
+					Message:    fmt.Sprintf("could not parse '%v', its kind '%v' is not supported", fieldName, field.Kind()),
 				}
 			}
-
-			record = append(record, v)
 		}
-	})
 
-	return record, err
+		return csvRecord
+	}
+
+	return structType.Reduce(sv.Type(), record, entryReducer), err
 }
 
-func unmarshalRecord(record []string, csvKeyMap map[string]int, sv reflect.Value) (err error) {
-	forEachStructField(sv.Type(), func(sf reflect.StructField, i int) {
-		f := sv.Field(i)
-		csvKey := sf.Tag.Get(csvKeyName)
+// unmarshalRecord transforms a CSV record to a CSV entry, it ignores unexported fields & fields without csv struct tag
+func unmarshalRecord(record []string, tagMap map[string]int, sv reflect.Value) (err error) {
+	structType.ForEach(sv.Type(), func(sf reflect.StructField, i int) {
+		field := sv.Field(i)
+		fieldKind := field.Kind()
+		fieldName := sf.Name
 
-		if fieldPosition, fieldExists := csvKeyMap[csvKey]; fieldExists && f.CanSet() {
-			if e := setValue(f, record[fieldPosition]); e != nil {
-				err = KindErr{
-					Message:    fmt.Sprintf("field '%v' is of unsupported kind: %v", csvKey, f.Kind()),
-					WrappedErr: e,
-				}
+		if tagPos, tagExists := tagMap[sf.Tag.Get(csvTagName)]; tagExists && field.CanSet() {
+			if e := setValue(field, record[tagPos]); e != nil {
+				err = KindErr{e, fmt.Sprintf("could not set '%v', its kind '%v' is not supported", fieldName, fieldKind)}
 			}
 		}
 	})

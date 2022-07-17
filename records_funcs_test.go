@@ -241,9 +241,9 @@ var (
 	age, name, hobby, address, isNigerian = 10, "john", "football", "no. 10 fuck off", true
 )
 
-func Test_getRecordKeys(t *testing.T) {
+func Test_getEntryTags(t *testing.T) {
 	testData := reflect.TypeOf(person{})
-	testResult := getRecordKeys(testData)
+	testResult := getEntryTags(testData)
 	testExpectation := []string{"name", "hobby", "address", "isNigerian"}
 
 	if diff := cmp.Diff(testResult, testExpectation); diff != "" {
@@ -251,10 +251,10 @@ func Test_getRecordKeys(t *testing.T) {
 	}
 }
 
-func Test_marshalRecord(t *testing.T) {
+func Test_marshalEntry(t *testing.T) {
 	testData := person{age, name, hobby, address, isNigerian}
 	testExpectation := []string{name, hobby, address, fmt.Sprint(isNigerian)}
-	testResult, marshalErr := marshalRecord(reflect.ValueOf(testData))
+	testResult, marshalErr := marshalEntry(reflect.ValueOf(testData))
 
 	if marshalErr != nil {
 		t.Error(marshalErr)

@@ -27,10 +27,10 @@ func Marshal(v any) (records [][]string, err error) {
 		csvRecords = make([][]string, 0, slice.Len())
 	)
 
-	csvRecords = append(csvRecords, getRecordKeys(recordType))
+	csvRecords = append(csvRecords, getEntryTags(recordType))
 
 	forEachStruct(slice, func(s reflect.Value, i int) {
-		record, recordErr := marshalRecord(s)
+		record, recordErr := marshalEntry(s)
 
 		if recordErr != nil {
 			err = recordErr

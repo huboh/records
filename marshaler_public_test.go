@@ -44,7 +44,7 @@ func TestMarshal(t *testing.T) {
 	csvRecords, entriesErr := records.Marshal(entries)
 
 	checkErr(entriesErr, func(e error) {
-		t.Error("unmarshal error", e)
+		t.Error(e)
 	})
 
 	if diff := cmp.Diff(csvRecords, csvRecordsExpectation); diff != "" {
@@ -67,13 +67,14 @@ func TestUnmarshal(t *testing.T) {
 	})
 
 	entries := []csvTestFileEntries{}
-	entriesErr := records.Unmarshal(csvRecords, &entries)
 	extriesExpectation := []csvTestFileEntries{
 		{20, "john", false}, {20, "mary", true}, {24, "saint", false}, {30, "helen", true},
 	}
 
+	entriesErr := records.Unmarshal(csvRecords, &entries)
+
 	checkErr(entriesErr, func(e error) {
-		t.Error("unmarshal error", e)
+		t.Error(e)
 	})
 
 	if diff := cmp.Diff(entries, extriesExpectation); diff != "" {
