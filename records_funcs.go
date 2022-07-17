@@ -1,6 +1,7 @@
 package records
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -36,8 +37,14 @@ func isPointerToSliceOfStructs(v any) bool {
 
 func getValue(f reflect.Value) (string, error) {
 	switch f.Kind() {
-	case reflect.Int:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return strconv.FormatInt(f.Int(), 10), nil
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return strconv.FormatUint(f.Uint(), 10), nil
+
+	case reflect.Float32, reflect.Float64:
+		return strconv.FormatFloat(f.Float(), 'f', -1, 64), nil
 
 	case reflect.Bool:
 		return strconv.FormatBool(f.Bool()), nil
@@ -52,7 +59,7 @@ func getValue(f reflect.Value) (string, error) {
 
 func setValue(d reflect.Value, v string) error {
 	switch d.Kind() {
-	case reflect.Int:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		i, err := strconv.ParseInt(v, 10, 64)
 
 		if err != nil {
@@ -60,6 +67,28 @@ func setValue(d reflect.Value, v string) error {
 		}
 
 		d.SetInt(i)
+
+		return nil
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		ui, err := strconv.ParseUint(v, 10, 64)
+
+		if err != nil {
+			return err
+		}
+
+		d.SetUint(ui)
+
+		return nil
+
+	case reflect.Float32, reflect.Float64:
+		ui, err := strconv.ParseFloat(v, 64)
+
+		if err != nil {
+			return err
+		}
+
+		d.SetFloat(ui)
 
 		return nil
 
@@ -116,9 +145,13 @@ func marshalEntry(sv reflect.Value) (record []string, err error) {
 			csvRecord = append(csvRecord, record)
 
 			if recordErr != nil {
-				err = KindErr{
-					WrappedErr: recordErr,
-					Message:    fmt.Sprintf("could not parse '%v', its kind '%v' is not supported", fieldName, field.Kind()),
+				err = recordErr
+
+				if errors.Is(recordErr, ErrUnSupportedKind) {
+					err = KindErr{
+						WrappedErr: recordErr,
+						Message:    fmt.Sprintf("could not parse '%v', its kind '%v' is not supported", fieldName, field.Kind()),
+					}
 				}
 			}
 		}
@@ -137,8 +170,14 @@ func unmarshalRecord(record []string, tagMap map[string]int, sv reflect.Value) (
 		fieldName := sf.Name
 
 		if tagPos, tagExists := tagMap[sf.Tag.Get(csvTagName)]; tagExists && field.CanSet() {
-			if e := setValue(field, record[tagPos]); e != nil {
-				err = KindErr{e, fmt.Sprintf("could not set '%v', its kind '%v' is not supported", fieldName, fieldKind)}
+			e := setValue(field, record[tagPos])
+
+			if e != nil {
+				err = e
+
+				if errors.Is(e, ErrUnSupportedKind) {
+					err = KindErr{e, fmt.Sprintf("could not set '%v', its kind '%v' is not supported", fieldName, fieldKind)}
+				}
 			}
 		}
 	})
