@@ -15,7 +15,18 @@ import (
 //
 // - struct fields without csv tags are ignored.
 //
-// - fields with unsupported kind are ignored. supported kinds are =: int, bool, string
+//  if (err != nil) && error.Is(err, records.ErrUnSupportedKind) {
+//    //encountered fields with unsupported kinds
+//    //(supported kinds are: all int, uint & float type, bool, string)
+//  }
+//
+//  if err != nil {
+//   // error is either strconv.ErrRange or strconv.ErrParse
+//  }
+//
+//  if err == nil {
+//   // success
+//  }
 func Marshal(v any) (records [][]string, err error) {
 	if !isSliceOfStruct(v) {
 		return nil, errors.New("v must be a slice of structs")
@@ -46,6 +57,21 @@ func Marshal(v any) (records [][]string, err error) {
 // the first csv record is assumed to be the csv header names, it builds each CSV entry by mapping it's csv struct tags to the column names.
 //
 // NB: unexported struct fields & struct fields without csv tags are ignored.
+//
+//  err := records.Unmarshal(csvRecords, &csvEntries)
+//
+//  if (err != nil) && error.Is(err, records.ErrUnSupportedKind) {
+//    //encountered fields with unsupported kinds
+//    //(supported kinds are: all int, uint & float type, bool, string)
+//  }
+//
+//  if err != nil {
+//   // error is either strconv.ErrRange or strconv.ErrParse
+//  }
+//
+//  if err == nil {
+//   // success
+//  }
 func Unmarshal(records [][]string, v any) (err error) {
 	if !isPointerToSliceOfStructs(v) {
 		return errors.New("v must be a pointer to a slice of structs")

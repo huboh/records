@@ -56,11 +56,19 @@ func main() {
 
   entriesErr := records.Unmarshal(csvRecords, &entries)
 
-  if entriesErr && errors.Is(entriesErr, records.ErrUnSupportedKind) {
-    // could not set some fields with unsupported kind (eg. structs)
+  if err == nil {
+    // success
+    // entries => []CsvFileEntries{{20, "john", false}, {20, "mary", true}, {24, "saint", false}....
   }
 
-  // entries => []CsvFileEntries{{20, "john", false}, {20, "mary", true}, {24, "saint", false}, {30, "helen", true}}
+  if entriesErr && errors.Is(entriesErr, records.ErrUnSupportedKind) {
+    // encountered fields with unsupported kinds
+    // (supported kinds are: all int, uint & float type, bool, string)
+  }
+
+  if err != nil {
+    // error is either strconv.ErrRange or strconv.ErrParse
+  }
 }
 ```
 
@@ -93,11 +101,19 @@ func main() {
 
   csvRecords, entriesErr := records.Marshal(entries)
 
-    if entriesErr && errors.Is(entriesErr, records.ErrUnSupportedKind) {
-      // could not marshal exported fields with unsupported kind (eg. structs)
-    }
+  if err == nil {
+    // success
+    // csvRecords => [][]string{{"age", "name", "isEmployee"},{"20", "john", "false"},{"20", "mary", "true"}...
+  }
 
-  // csvRecords => [][]string{{"age", "name", "isEmployee"},{"20", "john", "false"},{"20", "mary", "true"},{"24", "saint", "false"},{"30", "helen", "true"}}
+  if (err != nil) && error.Is(err, records.ErrUnSupportedKind) {
+    //encountered fields with unsupported kinds
+    //(supported kinds are: all int, uint & float type, bool, string)
+  }
+
+  if err != nil {
+    // error is either strconv.ErrRange or strconv.ErrParse
+  }
 }
 ```
 
