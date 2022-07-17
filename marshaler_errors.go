@@ -7,7 +7,7 @@ var (
 	ErrUnSupportedKind = errors.New("unsupported kind")
 )
 
-// A KindErr is returned when parsing values with unsupported underlying kind.
+// A KindErr records failed parsing for values with unsupported underlying kind.
 type KindErr struct {
 	WrappedErr error
 	Message    string
