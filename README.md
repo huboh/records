@@ -56,6 +56,10 @@ func main() {
 
   entriesErr := records.Unmarshal(csvRecords, &entries)
 
+  if entriesErr && errors.Is(entriesErr, records.ErrUnSupportedKind) {
+    // could not set some fields with unsupported kind (eg. structs)
+  }
+
   // entries => []CsvFileEntries{{20, "john", false}, {20, "mary", true}, {24, "saint", false}, {30, "helen", true}}
 }
 ```
@@ -88,6 +92,10 @@ func main() {
   }
 
   csvRecords, entriesErr := records.Marshal(entries)
+
+    if entriesErr && errors.Is(entriesErr, records.ErrUnSupportedKind) {
+      // could not marshal exported fields with unsupported kind (eg. structs)
+    }
 
   // csvRecords => [][]string{{"age", "name", "isEmployee"},{"20", "john", "false"},{"20", "mary", "true"},{"24", "saint", "false"},{"30", "helen", "true"}}
 }
