@@ -1,15 +1,10 @@
 package records
 
-type recordsErr string
+import "errors"
 
-func (m recordsErr) Error() string {
-	return (string)(m)
-}
-
-const (
-	// ErrUnSupportedKind is a sentinel error thats returned when parsing values with unsupported underlying kind.
-	// compare with errors.Is()
-	ErrUnSupportedKind = recordsErr("unsupported kind")
+var (
+	// ErrUnSupportedKind is a sentinel error thats returned when parsing values with unsupported kind. use errors.Is() to compare
+	ErrUnSupportedKind = errors.New("unsupported kind")
 )
 
 // A KindErr is returned when parsing values with unsupported underlying kind.
