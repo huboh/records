@@ -15,18 +15,20 @@ import (
 //
 // - struct fields without csv tags are ignored.
 //
-//  if (err != nil) && error.Is(err, records.ErrUnSupportedKind) {
-//    //encountered fields with unsupported kinds
-//    //(supported kinds are: all int, uint & float type, bool, string)
-//  }
+//  // marshal struct to csv records
+//  entries := []CsvFileEntries{...}
+//  csvRecords, err := records.Marshal(entries)
 //
-//  if err != nil {
-//   // error is either strconv.ErrRange or strconv.ErrParse
+//  if err != nil && error.Is(err, records.ErrUnSupportedKind) {
+//    // encountered fields with unsupported types
+//    // supported types are: all int, uint & float types, bool, string)
 //  }
+//  // success
 //
-//  if err == nil {
-//   // success
-//  }
+//  // write csv records to file
+//  w, e := os.Create("")
+//  csvWriter := csv.NewWriter(w)
+//  csvWriterErr := csvWriter.WriteAll(csvRecords)
 func Marshal(v any) (records [][]string, err error) {
 	if !isSliceOfStruct(v) {
 		return nil, errors.New("v must be a slice of structs")
@@ -58,20 +60,22 @@ func Marshal(v any) (records [][]string, err error) {
 //
 // NB: unexported struct fields & struct fields without csv tags are ignored.
 //
+//  // reading csv from file
+//  r, err := os.Open("")
+//  csvReader := csv.NewReader(r)
+//  csvRecords, err := csvReader.ReadAll()
+//
+//  // unmarshal csv records to structs
+//  csvEntries := []CsvFileEntries{} // initialize variable to hold csv entries
 //  err := records.Unmarshal(csvRecords, &csvEntries)
 //
-//  if (err != nil) && error.Is(err, records.ErrUnSupportedKind) {
-//    //encountered fields with unsupported kinds
-//    //(supported kinds are: all int, uint & float type, bool, string)
+//  // handle possible errors
+//  if err != nil && error.Is(err, records.ErrUnSupportedKind) {
+// 	  // encountered fields with unsupported types
+// 	  // supported types are: all int, uint & float types, bool, string
 //  }
 //
-//  if err != nil {
-//   // error is either strconv.ErrRange or strconv.ErrParse
-//  }
-//
-//  if err == nil {
-//   // success
-//  }
+//  // success
 func Unmarshal(records [][]string, v any) (err error) {
 	if !isPointerToSliceOfStructs(v) {
 		return errors.New("v must be a pointer to a slice of structs")
